@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GODA FIGHTING</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0a0a0a; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: Impact, Arial Black, sans-serif; }
+    #lobby {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: 100vh; width: 100%; color: white;
+    }
+    #game-wrapper {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    #game-layout {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      position: relative;
+    }
+    #game-container { display: block; position: relative; }
+
+    .controls-panel {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .controls-panel img {
+      width: 200px;
+      height: auto;
+      border-radius: 10px;
+      border: 2px solid #333;
+    }
+    #back-to-menu-btn {
+      padding: 12px 36px;
+      font-size: 18px;
+      font-family: Impact, sans-serif;
+      background: transparent;
+      color: #ff4400;
+      border: 2px solid #ff4400;
+      border-radius: 8px;
+      cursor: pointer;
+      letter-spacing: 2px;
+      transition: background .15s, color .15s, transform .1s;
+    }
+    #back-to-menu-btn:hover { background: #ff4400; color: #fff; transform: scale(1.04); }
+
+    .lobby-title { font-size: 80px; color: #ff4400; letter-spacing: 4px; }
+    .lobby-subtitle { font-size: 40px; color: #fff;  margin-bottom: 40px; }
+    .lobby-box {
+      background: rgba(0,0,0,0.8); border: 2px solid #ff4400; border-radius: 12px;
+      padding: 40px 50px; display: flex; flex-direction: column; align-items: center; gap: 18px;
+      min-width: 380px;
+    }
+    .btn { width: 100%; padding: 16px 0; font-size: 22px; font-family: Impact, sans-serif; background: #ff4400; color: #fff; border: none; border-radius: 8px; cursor: pointer; letter-spacing: 2px; transition: background .15s, transform .1s; }
+    .btn:hover { background: #ff6600; transform: scale(1.03); }
+    .btn:disabled { background: #555; cursor: not-allowed; transform: none; }
+    .btn-outline { background: transparent; border: 2px solid #ff4400; color: #ff4400; }
+    .btn-outline:hover { background: #ff4400; color: #fff; }
+    .btn-local { background: transparent; border: 2px solid #4488ff; color: #4488ff; }
+    .btn-local:hover { background: #4488ff; color: #fff; }
+    .sep-label { width: 100%; display: flex; align-items: center; gap: 10px; color: #555; font-size: 13px; font-family: Arial, sans-serif; }
+    .sep-label::before, .sep-label::after { content:''; flex:1; border-top: 1px solid #333; }
+    input.code-input { width: 100%; padding: 14px; font-size: 26px; font-family: 'Courier New', monospace; background: #111; border: 2px solid #444; border-radius: 8px; color: #fff; text-align: center; letter-spacing: 6px; text-transform: uppercase; }
+    input.code-input:focus { border-color: #ff4400; outline: none; }
+    .status-text { font-size: 15px; font-family: Arial, sans-serif; color: #aaa; text-align: center; min-height: 22px; }
+    .room-code-display { font-size: 40px; letter-spacing: 10px; color: #ff4400; font-family: 'Courier New', monospace; background: #111; border: 2px solid #ff4400; border-radius: 8px; padding: 14px 28px; cursor: pointer; user-select: all; }
+    .hint { font-size: 12px; font-family: Arial; color: #666; }
+    .ping-display { position: fixed; top: 8px; right: 12px; font-size: 13px; font-family: monospace; color: #0f0; z-index: 999; display: none; }
+    .net-indicator { position: fixed; top: 8px; left: 12px; font-size: 13px; font-family: monospace; color: #ff4400; z-index: 999; display: none; }
+  </style>
+</head>
+<body>
+
+<div id="lobby">
+  <div class="lobby-title">GODA</div>
+  <div class="lobby-subtitle">FIGHTING</div>
+
+  <div class="lobby-box" id="screen-main">
+    <button class="btn btn-local" id="btn-local">JUGAR LOCAL</button>
+    <div class="sep-label">ONLINE</div>
+    <button class="btn" id="btn-create">CREAR SALA (HOST)</button>
+    <button class="btn btn-outline" id="btn-join-show">UNIRSE A SALA</button>
+    <div class="status-text" id="status-main">Conectando con el servidor…</div>
+  </div>
+
+  <div class="lobby-box" id="screen-join" style="display:none">
+    <div style="font-size:20px; color:#aaa;">Ingresa el código de sala</div>
+    <input class="code-input" id="join-code-input" maxlength="6" placeholder="XXXXXX" />
+    <button class="btn" id="btn-join-confirm">CONECTAR</button>
+    <button class="btn btn-outline" id="btn-join-back">← VOLVER</button>
+    <div class="status-text" id="status-join"></div>
+  </div>
+
+  <div class="lobby-box" id="screen-waiting" style="display:none">
+    <div style="font-size:18px; color:#aaa; text-align:center;">Comparte este código con tu rival:</div>
+    <div class="room-code-display" id="room-code-display" title="Haz click para copiar"></div>
+    <div class="hint">Haz click para copiar</div>
+    <div class="status-text" id="status-waiting">Esperando que alguien se conecte…</div>
+    <button class="btn btn-outline" id="btn-cancel">Cancelar</button>
+  </div>
+</div>
+
+<div id="game-wrapper">
+  <div id="game-layout">
+    <div class="controls-panel">
+      <img id="ctrl-p1-img" src="assets/controles player 1.jpg" alt="Controles J1" />
+    </div>
+
+    <div id="game-container"></div>
+
+    <div class="controls-panel">
+      <img id="ctrl-p2-img" src="assets/controles player 2.jpg" alt="Controles J2" />
+    </div>
+  </div>
+
+  <button id="back-to-menu-btn">⬅ MENÚ PRINCIPAL</button>
+</div>
+
+<div class="ping-display" id="ping-display"></div>
+<div class="net-indicator" id="net-indicator"></div>
+
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+<script type="module" src="index.js"></script>
+</body>
+</html>
